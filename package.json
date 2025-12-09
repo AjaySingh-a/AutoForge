@@ -22,7 +22,9 @@
     "lint:frontend": "cd frontend && npm run lint",
     "test": "npm run test:backend && npm run test:frontend",
     "test:backend": "cd backend && npm test",
-    "test:frontend": "cd frontend && npm test"
+    "test:frontend": "cd frontend && npm test",
+    "cline": "cline",
+    "cline:check": "cd backend && npm run cline:check"
   },
   "keywords": [
     "ai",

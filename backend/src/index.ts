@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import { errorHandler } from './utils/errorHandler';
 import { logger } from './utils/logger';
 import agentsRouter from './routes/agents';
+import clineRouter from './routes/cline';
 
 // Load environment variables
 dotenv.config();
@@ -30,6 +31,7 @@ app.get('/health', (req, res) => {
 
 // API Routes
 app.use('/api/agents', agentsRouter);
+app.use('/api/cline', clineRouter);
 
 app.get('/api', (req, res) => {
   res.json({ 
@@ -37,6 +39,7 @@ app.get('/api', (req, res) => {
     endpoints: {
       health: '/health',
       agents: '/api/agents',
+      cline: '/api/cline',
       tasks: '/api/tasks'
     }
   });

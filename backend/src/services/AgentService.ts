@@ -3,6 +3,7 @@ import { DeveloperAgent } from '../modules/agents/DeveloperAgent';
 import { ReviewerAgent } from '../modules/agents/ReviewerAgent';
 import { FixerAgent } from '../modules/agents/FixerAgent';
 import { DevOpsAgent } from '../modules/agents/DevOpsAgent';
+import { ClineAgent } from '../modules/agents/ClineAgent';
 import { BaseAgent, AgentTask } from '../core/Agent';
 import { Agent } from '../types';
 import { logger } from '../utils/logger';
@@ -28,13 +29,14 @@ export class AgentService {
       new ReviewerAgent(),
       new FixerAgent(),
       new DevOpsAgent(),
+      new ClineAgent(), // Cline CLI integration for Infinity Build Award
     ];
 
     agents.forEach((agent) => {
       this.agents.set(agent.getId(), agent);
     });
 
-    logger.info(`Initialized ${agents.length} agents`);
+    logger.info(`Initialized ${agents.length} agents (including Cline Agent)`);
   }
 
   getAllAgents(): Agent[] {
