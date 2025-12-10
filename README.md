@@ -74,8 +74,10 @@ npm start
 
 - `backend/` - Node.js + TypeScript API server
 - `frontend/` - Next.js + React dashboard
-- `backend/src/core/` - Cline CLI integration
-- `backend/src/scripts/` - CodeRabbit automation
+- `backend/src/core/` - Core services (Cline CLI & CodeRabbit integration)
+- `backend/src/modules/agents/` - Multi-agent system
+- `backend/src/scripts/` - Automation scripts
+- `docs/` - Technical documentation
 
 ## 🔧 Tech Stack
 
@@ -102,6 +104,8 @@ npm start
 3. **Reviewer Agent** - Code review and quality checks
 4. **Fixer/Refactor Agent** - Optimization and bug fixes
 5. **DevOps Agent** - Deployment and CI/CD automation
+6. **Cline Agent** - AI-powered code generation via Cline CLI
+7. **CodeRabbit Agent** - GitHub PR automation and review integration
 
 ## 📝 License
 
