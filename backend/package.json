@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "AutoForge Backend API - Multi-Agent AI Development System",
   "main": "dist/index.js",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
@@ -11,7 +14,8 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "cline": "cline",
-    "cline:check": "cline --version"
+    "cline:check": "cline --version",
+    "coderabbit:automation": "tsx src/scripts/coderabbit-automation.ts"
   },
   "dependencies": {
     "express": "^4.18.2",

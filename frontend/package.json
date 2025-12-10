@@ -2,6 +2,9 @@
   "name": "autoforge-frontend",
   "version": "1.0.0",
   "description": "AutoForge Frontend Dashboard - Multi-Agent AI Development System",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
