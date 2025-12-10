@@ -15,12 +15,20 @@ export default function Home() {
                 Multi-Agent AI Development System
               </p>
             </div>
-            <Link
-              href="/cline"
-              className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
-            >
-              Cline CLI →
-            </Link>
+            <div className="flex gap-3">
+              <Link
+                href="/cline"
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+              >
+                Cline CLI →
+              </Link>
+              <Link
+                href="/coderabbit"
+                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+              >
+                CodeRabbit →
+              </Link>
+            </div>
           </div>
           <AgentDashboard />
         </div>

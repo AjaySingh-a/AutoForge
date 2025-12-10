@@ -4,6 +4,7 @@ import { ReviewerAgent } from '../modules/agents/ReviewerAgent';
 import { FixerAgent } from '../modules/agents/FixerAgent';
 import { DevOpsAgent } from '../modules/agents/DevOpsAgent';
 import { ClineAgent } from '../modules/agents/ClineAgent';
+import { CodeRabbitAgent } from '../modules/agents/CodeRabbitAgent';
 import { BaseAgent, AgentTask } from '../core/Agent';
 import { Agent } from '../types';
 import { logger } from '../utils/logger';
@@ -30,13 +31,14 @@ export class AgentService {
       new FixerAgent(),
       new DevOpsAgent(),
       new ClineAgent(), // Cline CLI integration for Infinity Build Award
+      new CodeRabbitAgent(), // CodeRabbit integration for Captain Code Award
     ];
 
     agents.forEach((agent) => {
       this.agents.set(agent.getId(), agent);
     });
 
-    logger.info(`Initialized ${agents.length} agents (including Cline Agent)`);
+    logger.info(`Initialized ${agents.length} agents (including Cline and CodeRabbit Agents)`);
   }
 
   getAllAgents(): Agent[] {
@@ -103,7 +105,7 @@ export class AgentService {
     }
 
     // Find queued tasks for this agent
-    const queuedTask = Array.from(this.taskQueue.entries()).find(([_, task]) => {
+    const queuedTask = Array.from(this.taskQueue.entries()).find(([_id, _task]) => {
       // This is simplified - in production, you'd match by agent type/capability
       return true;
     });

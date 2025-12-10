@@ -5,6 +5,7 @@ import { errorHandler } from './utils/errorHandler';
 import { logger } from './utils/logger';
 import agentsRouter from './routes/agents';
 import clineRouter from './routes/cline';
+import codeRabbitRouter from './routes/coderabbit';
 
 // Load environment variables
 dotenv.config();
@@ -21,7 +22,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Health check endpoint
-app.get('/health', (req, res) => {
+app.get('/health', (_req, res) => {
   res.json({ 
     status: 'ok', 
     timestamp: new Date().toISOString(),
@@ -32,14 +33,16 @@ app.get('/health', (req, res) => {
 // API Routes
 app.use('/api/agents', agentsRouter);
 app.use('/api/cline', clineRouter);
+app.use('/api/coderabbit', codeRabbitRouter);
 
-app.get('/api', (req, res) => {
+app.get('/api', (_req, res) => {
   res.json({ 
     message: 'AutoForge API v1.0',
     endpoints: {
       health: '/health',
       agents: '/api/agents',
       cline: '/api/cline',
+      coderabbit: '/api/coderabbit',
       tasks: '/api/tasks'
     }
   });

@@ -1,5 +1,7 @@
 import { BaseAgent, AgentTask } from '../../core/Agent';
 import { logger } from '../../utils/logger';
+import { getClineService } from '../../core/ClineService';
+import type { CodeRabbitComment } from '../../core/coderabbit/CodeRabbitService';
 
 export interface FixTask {
   code: string;
@@ -16,6 +18,11 @@ export interface FixResult {
   fixedCode: string;
   fixesApplied: string[];
   improvements: string[];
+}
+
+export interface CodeRabbitFixTask {
+  prNumber: number;
+  comments: CodeRabbitComment[];
 }
 
 export class FixerAgent extends BaseAgent {
@@ -40,6 +47,21 @@ export class FixerAgent extends BaseAgent {
     logger.info(`Fixer Agent executing task: ${task.id}`);
 
     try {
+      // Check if this is a CodeRabbit fix task
+      if (task.type === 'fix-coderabbit-comments') {
+        const codeRabbitTask = task.payload as CodeRabbitFixTask;
+        const result = await this.fixCodeRabbitComments(codeRabbitTask);
+
+        this.setStatus('idle');
+        return {
+          ...task,
+          status: result.success ? 'completed' : 'failed',
+          result,
+          error: result.success ? undefined : result.message,
+        };
+      }
+
+      // Regular fix task
       const fixTask = task.payload as FixTask;
       const result = await this.fix(fixTask);
 
@@ -53,7 +75,7 @@ export class FixerAgent extends BaseAgent {
       this.setStatus('error');
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       logger.error(`Fixer Agent error: ${errorMessage}`);
-      
+
       return {
         ...task,
         status: 'failed',
@@ -96,7 +118,7 @@ export class FixerAgent extends BaseAgent {
   private applyFix(
     code: string,
     issue: FixTask['issues'][0],
-    language: string
+    _language: string
   ): { fixed: boolean; code: string; improvement?: string } {
     let fixed = false;
     let newCode = code;
@@ -173,6 +195,79 @@ export class FixerAgent extends BaseAgent {
     }
 
     return refactored;
+  }
+
+  /**
+   * Fix CodeRabbit comments using Cline CLI
+   */
+  private async fixCodeRabbitComments(
+    task: CodeRabbitFixTask
+  ): Promise<{ success: boolean; fixesApplied: number; message: string }> {
+    const clineService = getClineService();
+    const isClineAvailable = await clineService.isClineAvailable();
+
+    if (!isClineAvailable) {
+      return {
+        success: false,
+        fixesApplied: 0,
+        message: 'Cline CLI is not available. Cannot apply CodeRabbit fixes.',
+      };
+    }
+
+    // Filter comments with suggestions
+    const commentsWithSuggestions = task.comments.filter((c) => c.suggestion);
+
+    if (commentsWithSuggestions.length === 0) {
+      return {
+        success: true,
+        fixesApplied: 0,
+        message: 'No suggestions found in CodeRabbit comments',
+      };
+    }
+
+    let fixesApplied = 0;
+    const fixTasks: string[] = [];
+
+    // Group comments by file
+    const commentsByFile = new Map<string, CodeRabbitComment[]>();
+    commentsWithSuggestions.forEach((comment) => {
+      if (comment.path) {
+        const existing = commentsByFile.get(comment.path) || [];
+        existing.push(comment);
+        commentsByFile.set(comment.path, existing);
+      }
+    });
+
+    // Create fix tasks for each file
+    for (const [filePath, fileComments] of commentsByFile.entries()) {
+      const suggestions = fileComments
+        .map((c) => c.suggestion)
+        .filter((s): s is string => !!s)
+        .join('\n');
+
+      const fixTask = `Apply CodeRabbit suggestions to ${filePath}:\n${suggestions}`;
+
+      try {
+        const result = await clineService.executeTask({
+          task: fixTask,
+          files: [filePath],
+          context: `PR #${task.prNumber} - CodeRabbit review fixes`,
+        });
+
+        if (result.success) {
+          fixesApplied += fileComments.length;
+          fixTasks.push(fixTask);
+        }
+      } catch (error) {
+        logger.error(`Failed to fix ${filePath}:`, error);
+      }
+    }
+
+    return {
+      success: fixesApplied > 0,
+      fixesApplied,
+      message: `Applied ${fixesApplied} fixes from CodeRabbit comments using Cline CLI`,
+    };
   }
 
   private delay(ms: number): Promise<void> {

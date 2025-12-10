@@ -7,7 +7,7 @@ const router = Router();
 const clineService = getClineService();
 
 // Check Cline CLI availability
-router.get('/status', async (req: Request, res: Response) => {
+router.get('/status', async (_req: Request, res: Response) => {
   try {
     const isAvailable = await clineService.isClineAvailable();
     const version = isAvailable ? await clineService.getVersion() : null;
@@ -90,7 +90,7 @@ router.post('/command', async (req: Request, res: Response) => {
 });
 
 // Get Cline version
-router.get('/version', async (req: Request, res: Response) => {
+router.get('/version', async (_req: Request, res: Response) => {
   try {
     const version = await clineService.getVersion();
 

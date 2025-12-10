@@ -86,7 +86,7 @@ export class PlannerAgent extends BaseAgent {
     };
   }
 
-  private breakDownTask(objective: string, context?: string): RoadmapStep[] {
+  private breakDownTask(objective: string, _context?: string): RoadmapStep[] {
     // This is a simplified planner - in production, this would use AI/LLM
     const steps: RoadmapStep[] = [];
     const keywords = objective.toLowerCase();

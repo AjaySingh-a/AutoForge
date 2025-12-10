@@ -24,7 +24,10 @@
     "test:backend": "cd backend && npm test",
     "test:frontend": "cd frontend && npm test",
     "cline": "cline",
-    "cline:check": "cd backend && npm run cline:check"
+    "cline:check": "cd backend && npm run cline:check",
+    "coderabbit:review": "cd backend && node -e \"require('./dist/core/coderabbit/CodeRabbitService').getCodeRabbitService().triggerReview(process.argv[1])\"",
+    "coderabbit:sync": "cd backend && node -e \"require('./dist/core/coderabbit/CodeRabbitService').getCodeRabbitService().fetchReviewComments(process.argv[1])\"",
+    "coderabbit:pr": "cd backend && node -e \"require('./dist/core/coderabbit/CodeRabbitService').getCodeRabbitService().getPRs()\""
   },
   "keywords": [
     "ai",

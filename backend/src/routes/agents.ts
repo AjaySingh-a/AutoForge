@@ -8,7 +8,7 @@ const router = Router();
 const agentService = getAgentService();
 
 // Get all agents
-router.get('/', async (req: Request, res: Response) => {
+router.get('/', async (_req: Request, res: Response) => {
   try {
     const agents = agentService.getAllAgents();
     res.json({
