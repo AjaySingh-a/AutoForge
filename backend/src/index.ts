@@ -10,6 +10,18 @@ import codeRabbitRouter from './routes/coderabbit';
 // Load environment variables
 dotenv.config();
 
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (reason: unknown, promise: Promise<unknown>) => {
+  logger.error('Unhandled Promise Rejection:', reason);
+  // Don't exit the process, just log the error
+});
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (error: Error) => {
+  logger.error('Uncaught Exception:', error);
+  // Don't exit the process, just log the error
+});
+
 const app = express();
 const PORT = process.env.PORT || 3001;
 

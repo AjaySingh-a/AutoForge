@@ -30,7 +30,11 @@ export class ClineService {
   constructor() {
     // Try to find Cline CLI in PATH or use 'cline' as default
     this.clinePath = process.env.CLINE_PATH || 'cline';
-    this.checkAvailability();
+    // Call checkAvailability but handle errors to prevent crashes
+    this.checkAvailability().catch((error) => {
+      logger.warn('Error checking Cline availability:', error);
+      this.isAvailable = false;
+    });
   }
 
   /**
