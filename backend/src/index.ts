@@ -11,7 +11,7 @@ import codeRabbitRouter from './routes/coderabbit';
 dotenv.config();
 
 // Handle unhandled promise rejections
-process.on('unhandledRejection', (reason: unknown, promise: Promise<unknown>) => {
+process.on('unhandledRejection', (reason: unknown, _promise: Promise<unknown>) => {
   logger.error('Unhandled Promise Rejection:', reason);
   // Don't exit the process, just log the error
 });
@@ -63,11 +63,15 @@ app.get('/api', (_req, res) => {
 // Error handling
 app.use(errorHandler);
 
-// Start server
-app.listen(PORT, () => {
-  logger.info(`🚀 AutoForge Backend running on http://localhost:${PORT}`);
-  logger.info(`📊 Health check: http://localhost:${PORT}/health`);
-});
+// Start server only in local development
+// Vercel will handle the serverless function automatically
+if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+  app.listen(PORT, () => {
+    logger.info(`🚀 AutoForge Backend running on http://localhost:${PORT}`);
+    logger.info(`📊 Health check: http://localhost:${PORT}/health`);
+  });
+}
 
+// Export for Vercel serverless function
 export default app;
 
