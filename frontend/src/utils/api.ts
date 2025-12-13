@@ -5,11 +5,9 @@ import axios from 'axios';
 // can't use Next.js rewrites
 const getApiUrl = () => {
   // In browser, use the environment variable or default backend URL
-  if (typeof window !== 'undefined') {
-    return process.env.NEXT_PUBLIC_API_URL || 'https://auto-forge-backend.vercel.app';
-  }
-  // Server-side can use rewrites
-  return process.env.NEXT_PUBLIC_API_URL || 'https://auto-forge-backend.vercel.app';
+  const url = process.env.NEXT_PUBLIC_API_URL || 'https://auto-forge-backend.vercel.app';
+  // Remove trailing slash to avoid double slashes
+  return url.replace(/\/+$/, '');
 };
 
 const API_URL = getApiUrl();

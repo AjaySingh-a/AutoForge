@@ -26,7 +26,7 @@ export const AgentDashboard: React.FC = () => {
       setError(null);
       
       // Log the exact URL being called
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://auto-forge-backend.vercel.app';
+      const apiUrl = (process.env.NEXT_PUBLIC_API_URL || 'https://auto-forge-backend.vercel.app').replace(/\/+$/, '');
       const fullUrl = `${apiUrl}/api/agents`;
       console.log('🔍 Attempting to fetch agents from:', fullUrl);
       console.log('🌐 Current window origin:', window.location.origin);
