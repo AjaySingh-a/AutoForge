@@ -14,10 +14,11 @@ const nextConfig = {
     return config;
   },
   async rewrites() {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://auto-forge-backend.vercel.app';
     return [
       {
         source: '/api/:path*',
-        destination: `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/:path*`,
+        destination: `${apiUrl}/api/:path*`,
       },
     ];
   },
