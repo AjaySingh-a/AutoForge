@@ -26,12 +26,33 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 // Middleware
-// CORS configuration - allow all origins for now to fix network errors
+// CORS configuration - explicitly allow frontend domain
+const allowedOrigins = [
+  'https://auto-forge-frontend.vercel.app',
+  'http://localhost:3000',
+  process.env.FRONTEND_URL
+].filter(Boolean); // Remove undefined values
+
 app.use(cors({
-  origin: '*', // Allow all origins temporarily to fix network errors
-  credentials: false, // Set to false when using wildcard origin
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps, Postman, curl)
+    if (!origin) {
+      return callback(null, true);
+    }
+    
+    // Allow if origin is in allowed list or if in development
+    if (allowedOrigins.includes(origin) || process.env.NODE_ENV !== 'production') {
+      callback(null, true);
+    } else {
+      // In production, allow all for now to fix network errors
+      // TODO: Restrict to specific origins after fixing
+      callback(null, true);
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  exposedHeaders: ['Content-Length', 'X-Foo', 'X-Bar']
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

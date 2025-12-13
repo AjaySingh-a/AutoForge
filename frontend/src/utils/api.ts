@@ -1,16 +1,25 @@
 import axios from 'axios';
 
-// Use relative URL to leverage Next.js rewrites (proxies through frontend domain)
-// This avoids CORS issues completely
-const API_URL = typeof window !== 'undefined' 
-  ? '' // Use relative URLs in browser (Next.js rewrites will handle it)
-  : (process.env.NEXT_PUBLIC_API_URL || 'https://auto-forge-backend.vercel.app');
+// Get API URL - use environment variable or default to backend URL
+// IMPORTANT: This must be the full backend URL since client-side requests
+// can't use Next.js rewrites
+const getApiUrl = () => {
+  // In browser, use the environment variable or default backend URL
+  if (typeof window !== 'undefined') {
+    return process.env.NEXT_PUBLIC_API_URL || 'https://auto-forge-backend.vercel.app';
+  }
+  // Server-side can use rewrites
+  return process.env.NEXT_PUBLIC_API_URL || 'https://auto-forge-backend.vercel.app';
+};
+
+const API_URL = getApiUrl();
 
 // Log API URL for debugging (only in browser)
 if (typeof window !== 'undefined') {
-  console.log('API Client initialized with URL:', API_URL || 'relative (using Next.js rewrites)');
-  console.log('NEXT_PUBLIC_API_URL env var:', process.env.NEXT_PUBLIC_API_URL);
-  console.log('Window location:', window.location.origin);
+  console.log('🔗 API Client initialized');
+  console.log('📍 API URL:', API_URL);
+  console.log('🌐 Environment variable:', process.env.NEXT_PUBLIC_API_URL || 'Not set (using default)');
+  console.log('🔍 Window origin:', window.location.origin);
 }
 
 export const apiClient = axios.create({
@@ -18,7 +27,7 @@ export const apiClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 15000, // 15 second timeout
+  timeout: 20000, // 20 second timeout
 });
 
 // Request interceptor
