@@ -43,7 +43,8 @@ app.use((req, res, next) => {
   // Handle preflight requests
   if (req.method === 'OPTIONS') {
     console.log('✅ CORS Preflight request handled');
-    return res.status(200).end();
+    res.status(200).end();
+    return;
   }
   
   next();
