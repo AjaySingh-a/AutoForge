@@ -24,8 +24,46 @@ export const AgentDashboard: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
+      
+      // Log the exact URL being called
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://auto-forge-backend.vercel.app';
+      const fullUrl = `${apiUrl}/api/agents`;
+      console.log('🔍 Attempting to fetch agents from:', fullUrl);
+      console.log('🌐 Current window origin:', window.location.origin);
+      
+      // Try direct fetch first to see exact error
+      try {
+        const testResponse = await fetch(fullUrl, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          mode: 'cors',
+        });
+        console.log('📡 Fetch response status:', testResponse.status);
+        console.log('📡 Fetch response headers:', Object.fromEntries(testResponse.headers.entries()));
+        
+        if (!testResponse.ok) {
+          const errorText = await testResponse.text();
+          console.error('❌ Fetch error response:', errorText);
+          throw new Error(`HTTP ${testResponse.status}: ${errorText}`);
+        }
+        
+        const testData = await testResponse.json();
+        console.log('✅ Fetch successful, data:', testData);
+        setAgents(testData.data || []);
+        setError(null);
+        return;
+      } catch (fetchError: any) {
+        console.error('❌ Direct fetch failed:', fetchError);
+        console.error('❌ Error name:', fetchError.name);
+        console.error('❌ Error message:', fetchError.message);
+        console.error('❌ Error stack:', fetchError.stack);
+      }
+      
+      // Fallback to axios
       const response = await apiClient.get('/api/agents');
-      console.log('Agents API Response:', response.data);
+      console.log('✅ Agents API Response:', response.data);
       setAgents(response.data.data || []);
       setError(null);
     } catch (err: any) {
@@ -36,10 +74,23 @@ export const AgentDashboard: React.FC = () => {
         statusText: err?.response?.statusText,
         url: err?.config?.url,
         baseURL: err?.config?.baseURL,
+        errorCode: err?.code,
+        errorName: err?.name,
         fullError: err
       };
-      console.error('Error fetching agents:', errorDetails);
-      setError(`Failed to fetch agents: ${errorMessage} (Status: ${err?.response?.status || 'Network Error'})`);
+      console.error('❌ Error fetching agents (full details):', errorDetails);
+      console.error('❌ Error object:', err);
+      
+      // More detailed error message
+      let userMessage = `Failed to fetch agents: ${errorMessage}`;
+      if (err?.code === 'ERR_NETWORK' || err?.message?.includes('Network Error')) {
+        userMessage += '\n\nPossible causes:\n- Backend is not accessible\n- CORS issue\n- Network connectivity problem\n\nCheck browser console for details.';
+      }
+      if (err?.response?.status) {
+        userMessage += ` (HTTP ${err.response.status})`;
+      }
+      
+      setError(userMessage);
     } finally {
       setLoading(false);
     }

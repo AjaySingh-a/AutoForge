@@ -26,29 +26,32 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 // Middleware
-// CORS configuration - explicitly allow frontend domain
-const allowedOrigins = [
-  'https://auto-forge-frontend.vercel.app',
-  'http://localhost:3000',
-  process.env.FRONTEND_URL
-].filter(Boolean); // Remove undefined values
+// CORS configuration - allow all origins to fix network errors
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  console.log('🌐 CORS Request from origin:', origin);
+  console.log('🌐 Request method:', req.method);
+  console.log('🌐 Request path:', req.path);
+  
+  // Set CORS headers
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Expose-Headers', 'Content-Length, X-Foo, X-Bar');
+  
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    console.log('✅ CORS Preflight request handled');
+    return res.status(200).end();
+  }
+  
+  next();
+});
 
+// Also use cors middleware as backup
 app.use(cors({
-  origin: (origin, callback) => {
-    // Allow requests with no origin (like mobile apps, Postman, curl)
-    if (!origin) {
-      return callback(null, true);
-    }
-    
-    // Allow if origin is in allowed list or if in development
-    if (allowedOrigins.includes(origin) || process.env.NODE_ENV !== 'production') {
-      callback(null, true);
-    } else {
-      // In production, allow all for now to fix network errors
-      // TODO: Restrict to specific origins after fixing
-      callback(null, true);
-    }
-  },
+  origin: '*',
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
