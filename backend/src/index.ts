@@ -33,6 +33,22 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Root endpoint
+app.get('/', (_req, res) => {
+  res.json({ 
+    message: 'AutoForge Backend API',
+    version: '1.0.0',
+    status: 'running',
+    endpoints: {
+      health: '/health',
+      api: '/api',
+      agents: '/api/agents',
+      cline: '/api/cline',
+      coderabbit: '/api/coderabbit'
+    }
+  });
+});
+
 // Health check endpoint
 app.get('/health', (_req, res) => {
   res.json({ 
