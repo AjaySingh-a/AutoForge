@@ -73,5 +73,7 @@ if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
 }
 
 // Export for Vercel serverless function
+// Vercel's @vercel/node builder expects CommonJS export
+module.exports = app;
 export default app;
 
