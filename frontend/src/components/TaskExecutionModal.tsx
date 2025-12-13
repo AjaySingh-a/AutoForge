@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Agent } from '@/types';
-import { apiClient } from '@/utils/api';
+import { Agent } from '../types';
+import { apiClient } from '../utils/api';
 
 interface TaskExecutionModalProps {
   agent: Agent;

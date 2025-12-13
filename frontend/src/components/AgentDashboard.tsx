@@ -1,10 +1,10 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Agent } from '@/types';
+import { Agent } from '../types';
 import { AgentCard } from './AgentCard';
 import { TaskExecutionModal } from './TaskExecutionModal';
-import { apiClient } from '@/utils/api';
+import { apiClient } from '../utils/api';
 
 export const AgentDashboard: React.FC = () => {
   const [agents, setAgents] = useState<Agent[]>([]);

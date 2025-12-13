@@ -1,4 +1,4 @@
-import { ClinePanel } from '@/components/ClinePanel';
+import { ClinePanel } from '../../components/ClinePanel';
 import Link from 'next/link';
 
 export default function ClinePage() {

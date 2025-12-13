@@ -1,4 +1,4 @@
-import { CodeRabbitPanel } from '@/components/CodeRabbitPanel';
+import { CodeRabbitPanel } from '../../components/CodeRabbitPanel';
 import Link from 'next/link';
 
 export default function CodeRabbitPage() {
