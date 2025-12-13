@@ -8,11 +8,14 @@ const fs = require('fs');
 let app;
 
 // Try multiple possible paths for the dist folder
+// Vercel structure: /var/task/backend/api/index.js -> /var/task/backend/dist/index.js
 const possiblePaths = [
-  path.join(__dirname, '..', 'dist', 'index.js'),  // api/index.js -> ../dist/index.js
-  path.join(process.cwd(), 'dist', 'index.js'),     // From current working directory
-  path.join(__dirname, 'dist', 'index.js'),          // Same directory as api
-  '/var/task/dist/index.js',                         // Vercel serverless absolute path
+  path.join(__dirname, '..', 'dist', 'index.js'),           // api/index.js -> ../dist/index.js (relative)
+  path.join(process.cwd(), 'backend', 'dist', 'index.js'),  // /var/task -> /var/task/backend/dist/index.js
+  path.join(process.cwd(), 'dist', 'index.js'),             // /var/task -> /var/task/dist/index.js
+  '/var/task/backend/dist/index.js',                        // Vercel absolute path (backend root)
+  '/var/task/dist/index.js',                                // Vercel absolute path (root)
+  path.join(__dirname, 'dist', 'index.js'),                 // Same directory as api (unlikely)
 ];
 
 let distPath = null;
