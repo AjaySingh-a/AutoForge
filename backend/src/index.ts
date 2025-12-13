@@ -26,23 +26,12 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 // Middleware
-// CORS configuration - allow frontend domain or all origins in production
-const allowedOrigins = process.env.FRONTEND_URL 
-  ? [process.env.FRONTEND_URL, 'https://auto-forge-frontend.vercel.app', 'http://localhost:3000']
-  : ['https://auto-forge-frontend.vercel.app', 'http://localhost:3000', 'http://localhost:3001'];
-
+// CORS configuration - allow all origins for now to fix network errors
 app.use(cors({
-  origin: (origin, callback) => {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    
-    if (allowedOrigins.includes(origin) || process.env.NODE_ENV !== 'production') {
-      callback(null, true);
-    } else {
-      callback(null, true); // Allow all origins for now - can restrict later
-    }
-  },
-  credentials: true
+  origin: '*', // Allow all origins temporarily to fix network errors
+  credentials: false, // Set to false when using wildcard origin
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
