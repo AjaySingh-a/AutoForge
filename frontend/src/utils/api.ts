@@ -2,11 +2,18 @@ import axios from 'axios';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://auto-forge-backend.vercel.app';
 
+// Log API URL for debugging (only in browser)
+if (typeof window !== 'undefined') {
+  console.log('API Client initialized with URL:', API_URL);
+  console.log('NEXT_PUBLIC_API_URL env var:', process.env.NEXT_PUBLIC_API_URL);
+}
+
 export const apiClient = axios.create({
   baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json',
   },
+  timeout: 10000, // 10 second timeout
 });
 
 // Request interceptor

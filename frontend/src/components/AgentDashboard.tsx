@@ -22,12 +22,24 @@ export const AgentDashboard: React.FC = () => {
 
   const fetchAgents = async () => {
     try {
+      setLoading(true);
+      setError(null);
       const response = await apiClient.get('/api/agents');
+      console.log('Agents API Response:', response.data);
       setAgents(response.data.data || []);
       setError(null);
-    } catch (err) {
-      setError('Failed to fetch agents');
-      console.error('Error fetching agents:', err);
+    } catch (err: any) {
+      const errorMessage = err?.response?.data?.message || err?.message || 'Failed to fetch agents';
+      const errorDetails = {
+        message: errorMessage,
+        status: err?.response?.status,
+        statusText: err?.response?.statusText,
+        url: err?.config?.url,
+        baseURL: err?.config?.baseURL,
+        fullError: err
+      };
+      console.error('Error fetching agents:', errorDetails);
+      setError(`Failed to fetch agents: ${errorMessage} (Status: ${err?.response?.status || 'Network Error'})`);
     } finally {
       setLoading(false);
     }
