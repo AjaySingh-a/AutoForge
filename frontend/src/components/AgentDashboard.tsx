@@ -14,15 +14,17 @@ export const AgentDashboard: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
-    fetchAgents();
-    // Poll for agent status updates every 5 seconds
-    const interval = setInterval(fetchAgents, 5000);
+    fetchAgents(true); // Initial fetch with loading
+    // Poll for agent status updates every 30 seconds (reduced frequency)
+    const interval = setInterval(() => fetchAgents(false), 30000);
     return () => clearInterval(interval);
   }, []);
 
-  const fetchAgents = async () => {
+  const fetchAgents = async (showLoading: boolean = false) => {
     try {
-      setLoading(true);
+      if (showLoading) {
+        setLoading(true);
+      }
       setError(null);
       
       // Log the exact URL being called
