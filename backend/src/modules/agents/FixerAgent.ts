@@ -92,8 +92,18 @@ export class FixerAgent extends BaseAgent {
     const fixesApplied: string[] = [];
     const improvements: string[] = [];
 
-    // Apply fixes based on issues
-    task.issues.forEach((issue) => {
+    // Sort issues by priority: error handling first, then security, then others
+    const sortedIssues = [...task.issues].sort((a, b) => {
+      const getPriority = (issue: typeof a) => {
+        if (issue.message.includes('error handling') || issue.message.includes('Missing error')) return 1;
+        if (issue.message.includes('password') || issue.message.includes('security') || issue.message.includes('bcrypt')) return 2;
+        return 3;
+      };
+      return getPriority(a) - getPriority(b);
+    });
+
+    // Apply fixes based on issues (in priority order)
+    sortedIssues.forEach((issue) => {
       const fix = this.applyFix(fixedCode, issue, task.language);
       if (fix.fixed) {
         fixedCode = fix.code;
@@ -178,49 +188,43 @@ export class FixerAgent extends BaseAgent {
     }
 
     // Pattern: user.password === password or user.password == password
-    const passwordPattern = /(\w+)\.password\s*[=!]==?\s*(\w+)/g;
+    const passwordPattern = /(\w+)\.password\s*[=!]==?\s*(\w+)/;
     
-    if (passwordPattern.test(code)) {
-      // Check if bcrypt is already imported
-      const hasBcryptImport = code.includes('import') && code.includes('bcrypt');
-      
-      let fixedCode = code;
-      
-      // Add bcrypt import if not present
-      if (!hasBcryptImport) {
-        const importMatch = code.match(/^import\s+.*from\s+['"]/m);
-        if (importMatch) {
-          const lastImportIndex = code.lastIndexOf('import');
-          const lastImportEnd = code.indexOf('\n', lastImportIndex);
-          if (lastImportEnd !== -1) {
-            fixedCode = 
-              code.substring(0, lastImportEnd + 1) +
-              "import bcrypt from 'bcryptjs';\n" +
-              code.substring(lastImportEnd + 1);
-          }
-        } else {
-          fixedCode = "import bcrypt from 'bcryptjs';\n" + fixedCode;
-        }
-      }
-
-      // Replace password comparison with bcrypt.compare
-      fixedCode = fixedCode.replace(
-        /(\w+)\.password\s*[=!]==?\s*(\w+)/g,
-        (_match, userVar, passwordVar) => {
-          return `await bcrypt.compare(${passwordVar}, ${userVar}.password)`;
-        }
-      );
-
-      // Update if conditions to use bcrypt result
-      fixedCode = fixedCode.replace(
-        /if\s*\(\s*await\s+bcrypt\.compare\((\w+),\s*(\w+)\.password\)\s*\)/g,
-        'if (await bcrypt.compare($1, $2.password))'
-      );
-
-      return fixedCode;
+    if (!passwordPattern.test(code)) {
+      return code;
     }
 
-    return code;
+    // Check if bcrypt is already imported
+    const hasBcryptImport = /import\s+.*bcrypt/.test(code);
+    
+    let fixedCode = code;
+    
+    // Add bcrypt import if not present
+    if (!hasBcryptImport) {
+      const importMatch = code.match(/^import\s+.*from\s+['"]/m);
+      if (importMatch) {
+        const lastImportIndex = code.lastIndexOf('import');
+        const lastImportEnd = code.indexOf('\n', lastImportIndex);
+        if (lastImportEnd !== -1) {
+          fixedCode = 
+            code.substring(0, lastImportEnd + 1) +
+            "import bcrypt from 'bcryptjs';\n" +
+            code.substring(lastImportEnd + 1);
+        }
+      } else {
+        fixedCode = "import bcrypt from 'bcryptjs';\n" + fixedCode;
+      }
+    }
+
+    // Replace password comparison with bcrypt.compare
+    fixedCode = fixedCode.replace(
+      /(\w+)\.password\s*[=!]==?\s*(\w+)/g,
+      (_match, userVar, passwordVar) => {
+        return `await bcrypt.compare(${passwordVar}, ${userVar}.password)`;
+      }
+    );
+
+    return fixedCode;
   }
 
   private addErrorHandling(code: string, language: string): string {
@@ -233,52 +237,50 @@ export class FixerAgent extends BaseAgent {
       return code;
     }
 
-    // Check if it's an async function or route handler
-    const isAsyncFunction = /async\s+(?:function|\(|=>)/.test(code);
-    const isRouteHandler = /router\.(get|post|put|delete|patch)\(/.test(code);
+    // Check if it's a route handler
+    const routeHandlerPattern = /(router\.(?:get|post|put|delete|patch)\([^)]+\)\s*=>\s*)(\{)/;
+    const routeMatch = code.match(routeHandlerPattern);
     
-    if (!isAsyncFunction && !isRouteHandler) {
+    if (!routeMatch) {
       return code;
     }
 
-    // Find the function body
-    const functionMatch = code.match(/(router\.(?:get|post|put|delete|patch)\([^)]+\)\s*=>\s*)(\{?)/);
-    if (functionMatch) {
-      const beforeBody = functionMatch[0];
-      const bodyStart = code.indexOf(beforeBody) + beforeBody.length;
-      
-      // Find the closing brace
-      let braceCount = 0;
-      let bodyEnd = bodyStart;
-      let foundFirstBrace = false;
-      
-      for (let i = bodyStart; i < code.length; i++) {
-        if (code[i] === '{') {
-          braceCount++;
-          foundFirstBrace = true;
-        } else if (code[i] === '}') {
-          braceCount--;
-          if (foundFirstBrace && braceCount === 0) {
-            bodyEnd = i;
-            break;
-          }
+    const beforeBody = routeMatch[0];
+    const bodyStart = code.indexOf(beforeBody) + beforeBody.length - 1; // Start at opening brace
+    
+    // Find the matching closing brace
+    let braceCount = 0;
+    let bodyEnd = -1;
+    
+    for (let i = bodyStart; i < code.length; i++) {
+      if (code[i] === '{') {
+        braceCount++;
+      } else if (code[i] === '}') {
+        braceCount--;
+        if (braceCount === 0) {
+          bodyEnd = i;
+          break;
         }
-      }
-
-      if (bodyEnd > bodyStart) {
-        const functionBody = code.substring(bodyStart, bodyEnd + 1);
-        const beforeFunction = code.substring(0, bodyStart);
-        const afterFunction = code.substring(bodyEnd + 1);
-
-        // Wrap body in try-catch
-        const wrappedBody = functionBody.replace(/^\{/, '').replace(/\}$/, '');
-        const tryCatchBody = `{\n  try {\n${this.indentCode(wrappedBody, 2)}\n  } catch (error) {\n    res.status(500).json({ error: 'Internal server error' });\n  }\n}`;
-
-        return beforeFunction + tryCatchBody + afterFunction;
       }
     }
 
-    return code;
+    if (bodyEnd === -1 || bodyEnd <= bodyStart) {
+      return code;
+    }
+
+    // Extract parts
+    const beforeFunction = code.substring(0, bodyStart);
+    const functionBody = code.substring(bodyStart + 1, bodyEnd); // Extract content without braces
+    const afterFunction = code.substring(bodyEnd + 1);
+
+    // Clean up function body (remove extra whitespace)
+    const cleanedBody = functionBody.trim();
+    
+    // Wrap in try-catch with proper indentation
+    const indentedBody = this.indentCode(cleanedBody, 2);
+    const tryCatchBody = `{\n  try {\n${indentedBody}\n  } catch (error) {\n    res.status(500).json({ error: 'Internal server error' });\n  }\n}`;
+
+    return beforeFunction + tryCatchBody + afterFunction;
   }
 
   private fixAnyTypes(code: string, language: string): string {
@@ -338,7 +340,10 @@ export class FixerAgent extends BaseAgent {
     const indent = ' '.repeat(spaces);
     return code
       .split('\n')
-      .map(line => line.trim() ? indent + line : '')
+      .map(line => {
+        const trimmed = line.trim();
+        return trimmed ? indent + trimmed : '';
+      })
       .join('\n');
   }
 
