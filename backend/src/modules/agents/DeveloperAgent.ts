@@ -73,9 +73,9 @@ export class DeveloperAgent extends BaseAgent {
     const framework = task.framework || 'none';
 
     // Generate code based on requirement
-    const files = this.generateCode(task.requirement, language, framework);
+    const files = this.generateCode(task.requirement, language, framework, task.context);
     const summary = this.generateSummary(task.requirement, files);
-    const dependencies = this.identifyDependencies(language, framework);
+    const dependencies = this.identifyDependencies(language, framework, task.requirement, task.context);
 
     return {
       files,
@@ -87,7 +87,8 @@ export class DeveloperAgent extends BaseAgent {
   private generateCode(
     requirement: string,
     language: string,
-    framework: string
+    framework: string,
+    context?: string
   ): GeneratedFile[] {
     const files: GeneratedFile[] = [];
 
@@ -95,7 +96,7 @@ export class DeveloperAgent extends BaseAgent {
     if (requirement.toLowerCase().includes('api') || requirement.toLowerCase().includes('endpoint')) {
       files.push({
         path: `src/routes/api.ts`,
-        content: this.generateAPICode(language, framework),
+        content: this.generateAPICode(language, framework, requirement, context),
         language,
       });
     }
@@ -128,8 +129,98 @@ export class DeveloperAgent extends BaseAgent {
     return files;
   }
 
-  private generateAPICode(language: string, framework: string): string {
+  private generateAPICode(language: string, framework: string, requirement?: string, context?: string): string {
     if (language === 'typescript' && framework === 'express') {
+      const req = `${requirement || ''} ${context || ''}`.toLowerCase();
+      
+      // Check for authentication-related keywords
+      if (req.includes('auth') || req.includes('login') || req.includes('signup') || req.includes('register') || req.includes('jwt')) {
+        return `import express, { Request, Response } from 'express';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+
+export const router = express.Router();
+
+interface User {
+  id: string;
+  email: string;
+  password: string;
+}
+
+// Signup endpoint
+router.post('/signup', async (req: Request, res: Response) => {
+  try {
+    const { email, password } = req.body;
+    
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required' });
+    }
+    
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+    
+    // TODO: Save user to database
+    // const user = await createUser({ email, password: hashedPassword });
+    
+    // Generate JWT token
+    const token = jwt.sign({ email }, process.env.JWT_SECRET || 'your-secret-key', {
+      expiresIn: '24h'
+    });
+    
+    res.status(201).json({
+      message: 'User created successfully',
+      token,
+      user: { email }
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to create user' });
+  }
+});
+
+// Login endpoint
+router.post('/login', async (req: Request, res: Response) => {
+  try {
+    const { email, password } = req.body;
+    
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required' });
+    }
+    
+    // TODO: Find user in database
+    // const user = await findUserByEmail(email);
+    
+    // TODO: Verify password
+    // const isValid = await bcrypt.compare(password, user.password);
+    
+    // if (!isValid) {
+    //   return res.status(401).json({ error: 'Invalid credentials' });
+    // }
+    
+    // Generate JWT token
+    const token = jwt.sign({ email }, process.env.JWT_SECRET || 'your-secret-key', {
+      expiresIn: '24h'
+    });
+    
+    res.json({
+      message: 'Login successful',
+      token,
+      user: { email }
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Login failed' });
+  }
+});
+
+// Health check endpoint
+router.get('/health', (req: Request, res: Response) => {
+  res.json({ status: 'ok' });
+});
+
+export default router;
+`;
+      }
+      
+      // Default API template
       return `import express, { Request, Response } from 'express';
 
 export const router = express.Router();
@@ -194,8 +285,9 @@ export default Module;
     return `Generated ${files.length} file(s) for: ${requirement}`;
   }
 
-  private identifyDependencies(language: string, framework: string): string[] {
+  private identifyDependencies(language: string, framework: string, requirement?: string, context?: string): string[] {
     const deps: string[] = [];
+    const req = `${requirement || ''} ${context || ''}`.toLowerCase();
     
     if (language === 'typescript') {
       deps.push('typescript');
@@ -207,6 +299,11 @@ export default Module;
     
     if (framework === 'react' || framework === 'next') {
       deps.push('react', 'react-dom');
+    }
+
+    // Add authentication-related dependencies
+    if (req.includes('auth') || req.includes('login') || req.includes('signup') || req.includes('jwt') || req.includes('password')) {
+      deps.push('bcryptjs', '@types/bcryptjs', 'jsonwebtoken', '@types/jsonwebtoken');
     }
 
     return deps;
