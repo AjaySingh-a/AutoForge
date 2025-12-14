@@ -206,7 +206,7 @@ export class FixerAgent extends BaseAgent {
       // Replace password comparison with bcrypt.compare
       fixedCode = fixedCode.replace(
         /(\w+)\.password\s*[=!]==?\s*(\w+)/g,
-        (match, userVar, passwordVar) => {
+        (_match, userVar, passwordVar) => {
           return `await bcrypt.compare(${passwordVar}, ${userVar}.password)`;
         }
       );
