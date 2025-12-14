@@ -144,9 +144,9 @@ export const ClinePanel: React.FC = () => {
             onChange={(e) => setTask(e.target.value)}
             placeholder="e.g., Add unit tests to utils.js"
             rows={3}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
             required
-            disabled={!status?.available || executing}
+            disabled={executing}
           />
         </div>
 
@@ -159,8 +159,8 @@ export const ClinePanel: React.FC = () => {
             value={files}
             onChange={(e) => setFiles(e.target.value)}
             placeholder="e.g., src/utils.js, src/helpers.ts"
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-            disabled={!status?.available || executing}
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+            disabled={executing}
           />
         </div>
 
@@ -173,8 +173,8 @@ export const ClinePanel: React.FC = () => {
             onChange={(e) => setContext(e.target.value)}
             placeholder="Additional context for the task"
             rows={2}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-            disabled={!status?.available || executing}
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+            disabled={executing}
           />
         </div>
 
