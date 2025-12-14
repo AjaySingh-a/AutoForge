@@ -86,13 +86,14 @@ export class PlannerAgent extends BaseAgent {
     };
   }
 
-  private breakDownTask(objective: string, _context?: string): RoadmapStep[] {
+  private breakDownTask(objective: string, context?: string): RoadmapStep[] {
     // This is a simplified planner - in production, this would use AI/LLM
     const steps: RoadmapStep[] = [];
-    const keywords = objective.toLowerCase();
+    // Combine objective and context for keyword analysis
+    const searchText = `${objective} ${context || ''}`.toLowerCase();
 
-    // Analyze keywords to determine steps
-    if (keywords.includes('api') || keywords.includes('endpoint')) {
+    // Analyze keywords to determine steps (in logical order)
+    if (searchText.includes('api') || searchText.includes('endpoint') || searchText.includes('backend')) {
       steps.push({
         id: 'step-1',
         title: 'Design API Structure',
@@ -102,43 +103,61 @@ export class PlannerAgent extends BaseAgent {
       });
     }
 
-    if (keywords.includes('database') || keywords.includes('db') || keywords.includes('model')) {
+    if (searchText.includes('database') || searchText.includes('db') || searchText.includes('model') || searchText.includes('schema')) {
+      const stepNumber = steps.length + 1;
       steps.push({
-        id: 'step-2',
+        id: `step-${stepNumber}`,
         title: 'Design Database Schema',
         description: 'Create database models and relationships',
-        order: 2,
-        dependencies: ['step-1'],
+        order: stepNumber,
+        dependencies: steps.length > 0 ? [steps[steps.length - 1].id] : [],
       });
     }
 
-    if (keywords.includes('frontend') || keywords.includes('ui') || keywords.includes('component')) {
+    if (searchText.includes('frontend') || searchText.includes('ui') || searchText.includes('component') || searchText.includes('full-stack') || searchText.includes('fullstack')) {
+      const stepNumber = steps.length + 1;
       steps.push({
-        id: 'step-3',
+        id: `step-${stepNumber}`,
         title: 'Build Frontend Components',
         description: 'Create React components and pages',
-        order: 3,
-        dependencies: ['step-1'],
+        order: stepNumber,
+        dependencies: steps.length > 0 ? [steps[0].id] : [], // Depends on API step if it exists
       });
     }
 
-    if (keywords.includes('test') || keywords.includes('testing')) {
+    // Payment integration step
+    if (searchText.includes('payment') || searchText.includes('pay') || searchText.includes('gateway') || searchText.includes('e-commerce') || searchText.includes('ecommerce')) {
+      const stepNumber = steps.length + 1;
       steps.push({
-        id: 'step-4',
+        id: `step-${stepNumber}`,
+        title: 'Integrate Payment Gateway',
+        description: 'Set up payment processing and secure transactions',
+        order: stepNumber,
+        dependencies: steps.length > 0 ? [steps[steps.length - 1].id] : [],
+      });
+    }
+
+    if (searchText.includes('test') || searchText.includes('testing')) {
+      const stepNumber = steps.length + 1;
+      // Tests depend on all previous steps
+      const previousStepIds = steps.map(step => step.id);
+      steps.push({
+        id: `step-${stepNumber}`,
         title: 'Write Tests',
         description: 'Create unit and integration tests',
-        order: 4,
-        dependencies: ['step-1', 'step-2', 'step-3'],
+        order: stepNumber,
+        dependencies: previousStepIds,
       });
     }
 
-    if (keywords.includes('deploy') || keywords.includes('production')) {
+    if (searchText.includes('deploy') || searchText.includes('production')) {
+      const stepNumber = steps.length + 1;
       steps.push({
-        id: 'step-5',
+        id: `step-${stepNumber}`,
         title: 'Deploy to Production',
         description: 'Configure deployment pipeline and deploy',
-        order: 5,
-        dependencies: ['step-4'],
+        order: stepNumber,
+        dependencies: steps.length > 0 ? [steps[steps.length - 1].id] : [],
       });
     }
 
