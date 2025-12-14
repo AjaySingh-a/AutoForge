@@ -118,7 +118,7 @@ export class FixerAgent extends BaseAgent {
   private applyFix(
     code: string,
     issue: FixTask['issues'][0],
-    _language: string
+    language: string
   ): { fixed: boolean; code: string; improvement?: string } {
     let fixed = false;
     let newCode = code;
@@ -130,11 +130,36 @@ export class FixerAgent extends BaseAgent {
       return { fixed, code: newCode, improvement: 'Replaced console.log with logger' };
     }
 
-    // Fix any type
-    if (issue.message.includes('any')) {
-      // This would require more sophisticated analysis in production
+    // Fix security issues - password comparison
+    if (issue.message.toLowerCase().includes('password') && 
+        (issue.message.toLowerCase().includes('plain text') || 
+         issue.message.toLowerCase().includes('security') ||
+         issue.message.toLowerCase().includes('bcrypt'))) {
+      newCode = this.fixPasswordComparison(newCode, language);
       fixed = true;
-      return { fixed, code: newCode, improvement: 'Identified "any" types for manual review' };
+      return { fixed, code: newCode, improvement: 'Fixed password comparison to use bcrypt.compare()' };
+    }
+
+    // Fix missing error handling - add try-catch for async functions
+    if (issue.message.includes('error handling') || issue.message.includes('Missing error')) {
+      newCode = this.addErrorHandling(newCode, language);
+      fixed = true;
+      return { fixed, code: newCode, improvement: 'Added try-catch error handling' };
+    }
+
+    // Fix any type - replace with unknown for better type safety
+    if (issue.message.includes('any')) {
+      newCode = this.fixAnyTypes(newCode, language);
+      fixed = true;
+      return { fixed, code: newCode, improvement: 'Replaced "any" types with "unknown" for better type safety' };
+    }
+
+    // Fix missing input validation
+    if (issue.message.toLowerCase().includes('validation') || 
+        issue.message.toLowerCase().includes('input')) {
+      newCode = this.addInputValidation(newCode, language);
+      fixed = true;
+      return { fixed, code: newCode, improvement: 'Added input validation' };
     }
 
     // Fix long lines
@@ -144,14 +169,177 @@ export class FixerAgent extends BaseAgent {
       return { fixed, code: newCode, improvement: 'Identified long lines for refactoring' };
     }
 
-    // Fix missing error handling
-    if (issue.message.includes('error handling')) {
-      // Would need AST parsing for proper fix
-      fixed = true;
-      return { fixed, code: newCode, improvement: 'Added error handling suggestions' };
+    return { fixed, code: newCode };
+  }
+
+  private fixPasswordComparison(code: string, language: string): string {
+    if (language !== 'typescript' && language !== 'javascript') {
+      return code;
     }
 
-    return { fixed, code: newCode };
+    // Pattern: user.password === password or user.password == password
+    const passwordPattern = /(\w+)\.password\s*[=!]==?\s*(\w+)/g;
+    
+    if (passwordPattern.test(code)) {
+      // Check if bcrypt is already imported
+      const hasBcryptImport = code.includes('import') && code.includes('bcrypt');
+      
+      let fixedCode = code;
+      
+      // Add bcrypt import if not present
+      if (!hasBcryptImport) {
+        const importMatch = code.match(/^import\s+.*from\s+['"]/m);
+        if (importMatch) {
+          const lastImportIndex = code.lastIndexOf('import');
+          const lastImportEnd = code.indexOf('\n', lastImportIndex);
+          if (lastImportEnd !== -1) {
+            fixedCode = 
+              code.substring(0, lastImportEnd + 1) +
+              "import bcrypt from 'bcryptjs';\n" +
+              code.substring(lastImportEnd + 1);
+          }
+        } else {
+          fixedCode = "import bcrypt from 'bcryptjs';\n" + fixedCode;
+        }
+      }
+
+      // Replace password comparison with bcrypt.compare
+      fixedCode = fixedCode.replace(
+        /(\w+)\.password\s*[=!]==?\s*(\w+)/g,
+        (match, userVar, passwordVar) => {
+          return `await bcrypt.compare(${passwordVar}, ${userVar}.password)`;
+        }
+      );
+
+      // Update if conditions to use bcrypt result
+      fixedCode = fixedCode.replace(
+        /if\s*\(\s*await\s+bcrypt\.compare\((\w+),\s*(\w+)\.password\)\s*\)/g,
+        'if (await bcrypt.compare($1, $2.password))'
+      );
+
+      return fixedCode;
+    }
+
+    return code;
+  }
+
+  private addErrorHandling(code: string, language: string): string {
+    if (language !== 'typescript' && language !== 'javascript') {
+      return code;
+    }
+
+    // Check if code already has try-catch
+    if (code.includes('try') && code.includes('catch')) {
+      return code;
+    }
+
+    // Check if it's an async function or route handler
+    const isAsyncFunction = /async\s+(?:function|\(|=>)/.test(code);
+    const isRouteHandler = /router\.(get|post|put|delete|patch)\(/.test(code);
+    
+    if (!isAsyncFunction && !isRouteHandler) {
+      return code;
+    }
+
+    // Find the function body
+    const functionMatch = code.match(/(router\.(?:get|post|put|delete|patch)\([^)]+\)\s*=>\s*)(\{?)/);
+    if (functionMatch) {
+      const beforeBody = functionMatch[0];
+      const bodyStart = code.indexOf(beforeBody) + beforeBody.length;
+      
+      // Find the closing brace
+      let braceCount = 0;
+      let bodyEnd = bodyStart;
+      let foundFirstBrace = false;
+      
+      for (let i = bodyStart; i < code.length; i++) {
+        if (code[i] === '{') {
+          braceCount++;
+          foundFirstBrace = true;
+        } else if (code[i] === '}') {
+          braceCount--;
+          if (foundFirstBrace && braceCount === 0) {
+            bodyEnd = i;
+            break;
+          }
+        }
+      }
+
+      if (bodyEnd > bodyStart) {
+        const functionBody = code.substring(bodyStart, bodyEnd + 1);
+        const beforeFunction = code.substring(0, bodyStart);
+        const afterFunction = code.substring(bodyEnd + 1);
+
+        // Wrap body in try-catch
+        const wrappedBody = functionBody.replace(/^\{/, '').replace(/\}$/, '');
+        const tryCatchBody = `{\n  try {\n${this.indentCode(wrappedBody, 2)}\n  } catch (error) {\n    res.status(500).json({ error: 'Internal server error' });\n  }\n}`;
+
+        return beforeFunction + tryCatchBody + afterFunction;
+      }
+    }
+
+    return code;
+  }
+
+  private fixAnyTypes(code: string, language: string): string {
+    if (language !== 'typescript') {
+      return code;
+    }
+
+    // Replace : any with : unknown (safer type)
+    let fixedCode = code.replace(/:\s*any\b/g, ': unknown');
+    
+    // Replace <any> with <unknown>
+    fixedCode = fixedCode.replace(/<\s*any\s*>/g, '<unknown>');
+    
+    // Replace Array<any> with Array<unknown>
+    fixedCode = fixedCode.replace(/Array<\s*any\s*>/g, 'Array<unknown>');
+
+    return fixedCode;
+  }
+
+  private addInputValidation(code: string, language: string): string {
+    if (language !== 'typescript' && language !== 'javascript') {
+      return code;
+    }
+
+    // Check if it's a route handler with req.body
+    if (!code.includes('req.body')) {
+      return code;
+    }
+
+    // Find destructuring patterns like const { email, password } = req.body;
+    const destructurePattern = /const\s+\{([^}]+)\}\s*=\s*req\.body;/;
+    const match = code.match(destructurePattern);
+    
+    if (match) {
+      const variables = match[1].split(',').map(v => v.trim());
+      const validationChecks = variables.map(v => {
+        const varName = v.split(':')[0].trim();
+        return `    if (!${varName}) {\n      return res.status(400).json({ error: '${varName} is required' });\n    }`;
+      }).join('\n');
+
+      // Insert validation after destructuring
+      const destructureLine = match[0];
+      const destructureIndex = code.indexOf(destructureLine);
+      const afterDestructure = destructureIndex + destructureLine.length;
+
+      return (
+        code.substring(0, afterDestructure) +
+        '\n' + validationChecks + '\n' +
+        code.substring(afterDestructure)
+      );
+    }
+
+    return code;
+  }
+
+  private indentCode(code: string, spaces: number): string {
+    const indent = ' '.repeat(spaces);
+    return code
+      .split('\n')
+      .map(line => line.trim() ? indent + line : '')
+      .join('\n');
   }
 
   private refactor(code: string, language: string): string {
